@@ -55,13 +55,22 @@ discovery only works locally.
 
 ## 1. Install on the Wyse
 
-The repo is private. The Wyse reads it with a **read-only deploy key**, an
-SSH key that can only read this repo, so no GitHub account credentials (and
-no `gh`) are needed on the server:
-
 ```bash
 sudo apt-get install -y git python3-venv
-ssh-keygen -t ed25519 -N "" -C "wyse rude-awakening deploy key" -f ~/.ssh/rude_awakening_deploy
+git clone https://github.com/joshuajyu/rude-awakening.git ~/rude-awakening
+cd ~/rude-awakening
+./install.sh
+```
+
+<details>
+<summary>Cloning a private copy (a private fork) without GitHub credentials on the server</summary>
+
+Use a **read-only deploy key**, an SSH key that can only read that one
+repo. That way no GitHub account credentials (and no `gh`) are needed on
+the server:
+
+```bash
+ssh-keygen -t ed25519 -N "" -C "rude-awakening deploy key" -f ~/.ssh/rude_awakening_deploy
 cat >> ~/.ssh/config <<'EOF'
 Host github-rude-awakening
     HostName github.com
@@ -74,17 +83,12 @@ cat ~/.ssh/rude_awakening_deploy.pub
 
 Add that public key under the repo's **Settings → Deploy keys** with write
 access left off. Or, from a machine where `gh` is logged in, run
-`gh repo deploy-key add rude_awakening_deploy.pub --repo joshuajyu/rude-awakening`.
-Then:
-
-```bash
-git clone git@github-rude-awakening:joshuajyu/rude-awakening.git ~/rude-awakening
-cd ~/rude-awakening
-./install.sh
-```
+`gh repo deploy-key add rude_awakening_deploy.pub --repo <you>/<repo>`.
+Then clone with `git clone git@github-rude-awakening:<you>/<repo>.git ~/rude-awakening`.
 
 On first connect, SSH asks you to trust GitHub's host key. The ED25519
 fingerprint should be `SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU`.
+</details>
 
 To update later, run `git pull && ./install.sh`. `install.sh` is safe to
 rerun. It:
