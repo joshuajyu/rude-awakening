@@ -33,7 +33,7 @@ class Settings:
     alarm_file: Path = ROOT / "sounds" / "alarm.mp3"
     listen_host: str = "127.0.0.1"
     listen_port: int = 8080
-    media_host: str = "10.0.0.2"
+    media_host: str = "192.168.1.10"
     media_port: int = 8081
 
     @classmethod
@@ -50,7 +50,7 @@ class Settings:
             alarm_file=alarm_file if alarm_file.is_absolute() else ROOT / alarm_file,
             listen_host=_str("LISTEN_HOST", "127.0.0.1"),
             listen_port=_int("LISTEN_PORT", 8080),
-            media_host=_str("MEDIA_HOST", "10.0.0.2"),
+            media_host=_str("MEDIA_HOST", "192.168.1.10"),
             media_port=_int("MEDIA_PORT", 8081),
         )
         settings.validate()

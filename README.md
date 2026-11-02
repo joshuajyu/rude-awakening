@@ -12,7 +12,7 @@ Rootly ──SMS──▶ iPhone Shortcuts automation (only fires when you're ho
                      http://127.0.0.1:8080  (webhook service)
                                    │ pychromecast
                                    ▼
-     Nest Mini ──fetches──▶ http://10.0.0.2:8081/alarm.mp3
+     Nest Mini ──fetches──▶ http://192.168.1.10:8081/alarm.mp3
 ```
 
 Rootly doesn't call the webhook directly, because that needs Rootly admin
@@ -43,7 +43,7 @@ stop" or tapping the Nest Mini. Either way the volume is restored.
 fanless thin client: an office PC built to run remote desktops, which now
 sells cheaply second-hand. It draws only a few watts, so it can stay on
 all the time, which a pager needs. This one runs **Ubuntu Server LTS** and
-sits on the home LAN at `10.0.0.2`, where it also runs Pi-hole for
+sits on the home LAN, where it also runs Pi-hole for
 network-wide ad blocking. This service shares the machine with it and stays
 off Pi-hole's ports (53, 80 and 443).
 
@@ -103,9 +103,12 @@ rerun. It:
    ~/rude-awakening/.venv/bin/python -c "import pychromecast; cs, b = pychromecast.get_chromecasts(); b.stop_discovery(); [print(c.cast_info.friendly_name, c.cast_info.host, c.cast_info.model_name) for c in cs]"
    ```
 
-2. Reserve that IP for the Nest in the Rogers gateway admin page.
+2. Reserve that IP for the Nest in your router's admin page.
 3. Edit `~/rude-awakening/.env` and set `NEST_IP` and `NEST_NAME`. The service
-   tries the IP first and falls back to discovery by name.
+   tries the IP first and falls back to discovery by name. Also set
+   `MEDIA_HOST` to this machine's LAN IP (`hostname -I` shows it), and give
+   the machine a fixed IP too. `install.sh` warns if `MEDIA_HOST` doesn't
+   match.
 4. Apply the change and check that the service can reach the Nest:
 
    ```bash
@@ -119,11 +122,12 @@ rerun. It:
 | Port | Bound to         | Used for |
 |------|------------------|----------|
 | 8080 | `127.0.0.1` only | The webhook. Only cloudflared can reach it. |
-| 8081 | `10.0.0.2` (LAN) | Serves the alarm file to the Nest. The Nest needs a plain HTTP URL it can reach. Only that one file is served. |
+| 8081 | `192.168.1.10` (LAN) | Serves the alarm file to the Nest. The Nest needs a plain HTTP URL it can reach. Only that one file is served. |
 
 If you've enabled `ufw` (it's off by default on Ubuntu Server), let the Nest
 reach the media port:
-`sudo ufw allow from 10.0.0.0/24 to any port 8081 proto tcp`.
+`sudo ufw allow from 192.168.1.0/24 to any port 8081 proto tcp`
+(use your own LAN's subnet).
 
 ## 2. Cloudflare Tunnel
 
@@ -208,7 +212,7 @@ from as a contact called **Rootly**.
 Get the token from the Wyse onto your Mac's clipboard without printing it:
 
 ```bash
-ssh joshuayu@10.0.0.2 "grep '^WEBHOOK_TOKEN=' ~/rude-awakening/.env | cut -d= -f2-" | tr -d '\n' | pbcopy
+ssh you@192.168.1.10 "grep '^WEBHOOK_TOKEN=' ~/rude-awakening/.env | cut -d= -f2-" | tr -d '\n' | pbcopy
 ```
 
 Then paste it on the iPhone via Universal Clipboard (same Apple ID, with

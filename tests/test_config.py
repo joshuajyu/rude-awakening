@@ -22,7 +22,7 @@ def test_defaults(env):
     s = Settings.from_env()
     assert (s.alarm_volume, s.alarm_timeout, s.listen_host, s.listen_port) == (90, 600, "127.0.0.1", 8080)
     assert s.alarm_file == ROOT / "sounds" / "alarm.mp3"
-    assert s.media_url == "http://10.0.0.2:8081/alarm.mp3"
+    assert s.media_url == "http://192.168.1.10:8081/alarm.mp3"
 
 
 @pytest.mark.parametrize("overrides", [

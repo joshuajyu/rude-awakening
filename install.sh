@@ -60,5 +60,5 @@ if command -v ufw >/dev/null && sudo ufw status | grep -q "Status: active"; then
     media_port="$(sed -n 's/^MEDIA_PORT=//p' .env)"
     echo
     echo "ufw is active. If the Nest can't fetch the sound, allow the media port from the LAN:"
-    echo "    sudo ufw allow from 10.0.0.0/24 to any port ${media_port:-8081} proto tcp"
+    echo "    sudo ufw allow from ${media_host%.*}.0/24 to any port ${media_port:-8081} proto tcp"
 fi

@@ -62,7 +62,7 @@ class FakeCast:
 
 @pytest.fixture
 def settings():
-    return Settings(webhook_token="x" * 20, nest_ip="10.0.0.50")
+    return Settings(webhook_token="x" * 20, nest_ip="192.168.1.50")
 
 
 def make_ringer(settings, cast):
@@ -75,7 +75,7 @@ def test_ring_loops_until_timeout_then_restores_volume(settings):
 
     media = cast.media_controller
     assert len(media.plays) >= 2
-    assert media.plays[0] == ("http://10.0.0.2:8081/alarm.mp3", "audio/mpeg")
+    assert media.plays[0] == ("http://192.168.1.10:8081/alarm.mp3", "audio/mpeg")
     assert cast.volumes == [0.9, 0.3]
     assert cast.mutes == [False, True]
     assert media.stopped and cast.quit and cast.disconnected
@@ -119,11 +119,11 @@ def test_connect_falls_back_to_discovery(monkeypatch):
     monkeypatch.setattr(alarm.pychromecast, "get_listed_chromecasts",
                         lambda friendly_names, **kw: ([cast], browser) if friendly_names == ["Bedroom"] else ([], browser))
 
-    assert connect_nest("10.0.0.50", "Bedroom") is cast
+    assert connect_nest("192.168.1.50", "Bedroom") is cast
     with pytest.raises(NestUnavailable):
-        connect_nest("10.0.0.50", "Kitchen")
+        connect_nest("192.168.1.50", "Kitchen")
     with pytest.raises(NestUnavailable):
-        connect_nest("10.0.0.50", "")
+        connect_nest("192.168.1.50", "")
 
 
 def test_connect_prefers_ip(monkeypatch):
@@ -131,7 +131,7 @@ def test_connect_prefers_ip(monkeypatch):
     monkeypatch.setattr(alarm.pychromecast, "get_chromecast_from_host", lambda host, **kw: cast)
     monkeypatch.setattr(alarm.pychromecast, "get_listed_chromecasts",
                         lambda **kw: pytest.fail("should not discover"))
-    assert connect_nest("10.0.0.50", "Bedroom") is cast
+    assert connect_nest("192.168.1.50", "Bedroom") is cast
 
 
 def blocking_ring(volume, duration, stop):
@@ -196,7 +196,7 @@ def test_warns_when_playback_never_starts(settings, caplog, states):
     cast = FakeCast(NeverPlays(states))
     make_ringer(settings, cast).ring(90, 0.2, threading.Event())
     assert "Nest is playing the alarm" not in caplog.messages
-    assert any("never started playing" in m and "http://10.0.0.2:8081/alarm.mp3" in m
+    assert any("never started playing" in m and "http://192.168.1.10:8081/alarm.mp3" in m
                for m in caplog.messages)
 
 

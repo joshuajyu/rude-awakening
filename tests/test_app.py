@@ -29,7 +29,7 @@ def ringer():
 
 @pytest.fixture
 def client(ringer):
-    settings = Settings(webhook_token=TOKEN, nest_ip="10.0.0.50")
+    settings = Settings(webhook_token=TOKEN, nest_ip="192.168.1.50")
     with TestClient(create_app(settings, ringer=ringer, serve_media=False)) as c:
         yield c
 

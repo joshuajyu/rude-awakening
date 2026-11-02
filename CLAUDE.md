@@ -28,12 +28,13 @@ what you need to work on the repo.
 
 ## Deploying to the Wyse
 
-- `ssh joshuayu@10.0.0.2` works without a prompt from the Mac. The Wyse
+- The Wyse is reachable over SSH from the Mac without a prompt. Its address
+  and user are in Claude's local project memory, not in this repo. The Wyse
   clones with a read-only deploy key, so push from the Mac and then
   `git pull` on the Wyse.
 - **sudo on the Wyse needs a password**, so you can't run `install.sh` or
   `systemctl restart` there yourself. Give the user the exact command,
-  e.g. `ssh -t joshuayu@10.0.0.2 'sudo systemctl restart rude-awakening'`.
+  e.g. `ssh -t <user>@<wyse> 'sudo systemctl restart rude-awakening'`.
   The service reads `.env` and the code only at startup, so changes need
   that restart.
 - The live config is `~/rude-awakening/.env` on the Wyse, and it differs
