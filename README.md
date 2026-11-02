@@ -43,7 +43,9 @@ stop" or tapping the Nest Mini. Either way the volume is restored.
 fanless thin client: an office PC built to run remote desktops, which now
 sells cheaply second-hand. It draws only a few watts, so it can stay on
 all the time, which a pager needs. This one runs **Ubuntu Server LTS** and
-sits on the home LAN at `10.0.0.2`, alongside other home services.
+sits on the home LAN at `10.0.0.2`, where it also runs Pi-hole for
+network-wide ad blocking. This service shares the machine with it and stays
+off Pi-hole's ports (53, 80 and 443).
 
 Nothing here depends on that model. Any always-on Linux machine on the same
 network as the Nest will do, such as a Raspberry Pi or an old laptop, as
