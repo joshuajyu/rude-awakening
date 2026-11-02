@@ -1,16 +1,24 @@
 # rude-awakening
 
 When Rootly pages you, this makes a Google Nest Mini blare an alarm at high
-volume until you stop it.
+volume until you stop it. Your phone can sleep in another room.
 
 ```
-Rootly workflow ──HTTPS──▶ Cloudflare Tunnel ──▶ cloudflared on the Wyse
-                                                   │
-                                     http://127.0.0.1:8080  (webhook service)
-                                                   │ pychromecast
-                                                   ▼
-                     Nest Mini ──fetches──▶ http://10.0.0.2:8081/alarm.mp3
+Rootly ──SMS──▶ iPhone Shortcuts automation (only fires when you're home)
+                  │ HTTPS POST /page + X-Webhook-Token
+                  ▼
+           Cloudflare Tunnel ──▶ cloudflared on the Wyse
+                                   │
+                     http://127.0.0.1:8080  (webhook service)
+                                   │ pychromecast
+                                   ▼
+     Nest Mini ──fetches──▶ http://10.0.0.2:8081/alarm.mp3
 ```
+
+Rootly doesn't call the webhook directly, because that needs Rootly admin
+rights to set up a workflow. Instead, Rootly texts your iPhone as it
+normally would, and a Shortcuts automation forwards the page to the
+webhook.
 
 It's a small FastAPI service that runs natively under systemd, alongside
 Pi-hole. It doesn't touch Pi-hole or its ports (53/80/443).
@@ -170,37 +178,88 @@ ingress:
 Then run `sudo cloudflared service install`.
 </details>
 
-## 3. Rootly workflow
+## 3. iPhone automation
 
-Get the token on the Wyse with `grep WEBHOOK_TOKEN ~/rude-awakening/.env`.
+### Get pages by SMS
 
-1. In Rootly, go to **Workflows → Create Workflow**. Choose an **Alert**
-   workflow triggered when an alert is created, or an **Incident** workflow
-   if you page from incidents.
-2. Add conditions so it only fires for pages that target you, e.g. your
-   escalation policy or your user as the notification target.
-3. Add an **HTTP Client** action (search "HTTP" in the action list):
-   - **URL:** `https://page.example.com/page`
-   - **Method:** `POST`
-   - **Headers:**
-     ```json
-     {"X-Webhook-Token": "<WEBHOOK_TOKEN>", "Content-Type": "application/json"}
-     ```
-   - **Body:** anything works; the service only logs it. For example:
-     ```json
-     {"title": "{{ alert.summary }}"}
-     ```
-     Use whichever Liquid variables Rootly offers in the editor.
-   - A successful page returns `202`.
-4. Optional: add a second workflow that runs when an alert is
-   **acknowledged** and POSTs to `https://page.example.com/stop` with the same
-   header. Acknowledging in Rootly will then silence the speaker.
+Shortcuts can react to text messages but not to push notifications from
+other apps. In Rootly, open your **personal notification rules** and make
+sure SMS is one of the methods for a page. Save the number Rootly texts
+from as a contact called **Rootly**.
 
-> **Keep a fallback escalation.** This depends on the Wyse, your home
-> internet, Cloudflare and the Nest all working. Keep your Rootly personal
-> notification rules for push, SMS and phone call, and add a later
-> escalation level (a backup responder, or a phone call after a few
-> minutes), so a page still reaches someone if this chain is down.
+### Get the token onto the phone
+
+Get the token from the Wyse onto your Mac's clipboard without printing it:
+
+```bash
+ssh joshuayu@10.0.0.2 "grep '^WEBHOOK_TOKEN=' ~/rude-awakening/.env | cut -d= -f2-" | tr -d '\n' | pbcopy
+```
+
+Then paste it on the iPhone via Universal Clipboard (same Apple ID, with
+Handoff on). The token is 43 characters: letters, numbers, `-` and `_`.
+Make sure nothing else comes along with it. A stray line break or other
+invisible character makes Cloudflare reject the request with a
+`400 Bad Request`, which never shows up in the service's logs.
+
+### Build the automation
+
+In the **Shortcuts** app, go to **Automation → + → Message**:
+
+- **Sender:** Rootly
+- **Run Immediately**, with **Notify When Run** off
+
+Then build these actions. Set the URL to `/test` while you set it up, and
+change it to `/page` in **both** places once it works.
+
+```
+Get Network Details  (Wi-Fi → Network Name)
+If  Network Details  is  <home Wi-Fi name>
+    Get Contents of URL   ← request below
+Otherwise
+    Get Current Location
+    Get Details of Locations  (Postal Code)
+    If  Postal Code  begins with  <first 3 characters of home postal code>
+        Get Contents of URL   ← request below
+    End If
+End If
+```
+
+The request, in both places:
+
+- **URL:** `https://page.example.com/page`. Use lowercase with no trailing
+  slash; the tunnel's path filter returns 404 for anything else.
+- **Method:** `POST`
+- **Headers:** `X-Webhook-Token` = the token
+- **Request Body:** JSON, with key `title` = *Shortcut Input*. This puts the
+  SMS text in the service's logs.
+
+Why the two checks: the alarm shouldn't wake the rest of the house when you
+aren't home.
+- **Home Wi-Fi** decides most of the time.
+- **Location** catches the case where your phone is on cellular at home.
+  It checks only the first three characters of the postal code because the
+  phone's location is approximate and often reports a neighbour's full
+  postal code. The catch is that a page while you're on cellular somewhere
+  in the same area also rings the Nest at home.
+
+Before the first automated run, tap ▶ in the editor once with Wi-Fi off and
+allow location access. An automation that runs immediately can't show the
+permission prompt, so Get Current Location would fail with no error shown.
+
+### Keep it working
+
+- Leave the phone plugged in, somewhere with good Wi-Fi.
+- Let Rootly's SMS through your Sleep or Do Not Disturb focus.
+- To stop the alarm, say "Hey Google, stop" or tap the Nest. Otherwise it
+  stops itself after 10 minutes. Repeat SMS for the same page are ignored
+  while it's ringing.
+
+> **Keep a fallback escalation.** This depends on your phone, home Wi-Fi or
+> signal, your internet, Cloudflare, the Wyse and the Nest all working, and
+> with the phone in another room you won't hear it if any of them fails.
+> Keep a later escalation level in Rootly (a backup responder, or a phone
+> call after a few minutes), so a page still reaches someone if this chain
+> is down.
 
 ## 4. Test end to end
 
@@ -226,9 +285,28 @@ curl -s -X POST -H "X-Webhook-Token: $TOKEN" https://page.example.com/stop
 curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'X-Webhook-Token: nope' https://page.example.com/page
 ```
 
-Finally, trigger a real test page in Rootly (e.g. page yourself) and watch
-`journalctl -u rude-awakening -f`. You should see `Page received: ...`
-followed by `Ringing at 90% ...`.
+Then test the phone, with the automation's URLs still on `/test`. Watch
+`journalctl -u rude-awakening -f` on the Wyse and send yourself a test
+notification from Rootly, twice:
+
+1. **On home Wi-Fi.** You should see `Test received: ... title='<the SMS text>'`,
+   then `Nest is playing the alarm`.
+2. **With Wi-Fi off** (cellular), still at home. The location check should
+   match, and you should see the same lines.
+
+If nothing shows up in the logs, the request didn't reach the Wyse. Add a
+**Show Content** action after Get Contents of URL and run the automation
+by hand to see the reply:
+
+| Reply | Cause |
+|-------|-------|
+| `{"status": "testing"}` | It works. If it fails only when triggered by SMS, check the trigger and location permission. |
+| `{"detail": "invalid token"}` | The header name or token value is wrong. |
+| `400 Bad Request` (from Cloudflare) | An invisible character in the token value. Delete the value and paste it again. |
+| 404 | The URL path isn't exactly `/test` or `/page`. |
+| Nothing (location branch) | The postal code didn't match. Show *Postal Code* to see what the phone reports. |
+
+When both tests pass, switch both URLs to `/page`.
 
 ## Alarm sound
 
