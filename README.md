@@ -20,8 +20,8 @@ rights to set up a workflow. Instead, Rootly texts your iPhone as it
 normally would, and a Shortcuts automation forwards the page to the
 webhook.
 
-It's a small FastAPI service that runs natively under systemd, alongside
-Pi-hole. It doesn't touch Pi-hole or its ports (53/80/443).
+It's a small FastAPI service that runs natively under systemd. It only uses
+two ports (below), so it can share the machine with other services.
 
 | Endpoint      | Auth | What it does |
 |---------------|------|--------------|
@@ -111,8 +111,8 @@ reach the media port:
 
 ## 2. Cloudflare Tunnel
 
-This exposes **only** the webhook port. Pi-hole's admin page stays private,
-and you don't need any port forwarding on the router.
+This exposes **only** the webhook port. Anything else running on the Wyse
+stays private, and you don't need any port forwarding on the router.
 
 ### Install cloudflared
 
@@ -143,8 +143,8 @@ simplest:
    - **Service:** `HTTP` → `127.0.0.1:8080`
 
    Use `127.0.0.1` rather than `localhost`. `localhost` can resolve to IPv6
-   `::1`, and the service only listens on IPv4. Don't add hostnames for
-   ports 80 or 443, which are Pi-hole's.
+   `::1`, and the service only listens on IPv4. Don't route any other ports
+   through the tunnel.
 4. Check it from the Wyse:
 
    ```bash
