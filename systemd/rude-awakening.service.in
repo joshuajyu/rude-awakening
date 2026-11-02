@@ -9,7 +9,7 @@ After=network-online.target
 Type=simple
 User=@USER@
 WorkingDirectory=@DIR@
-ExecStart=@DIR@/.venv/bin/python -m rude_awakening
+ExecStart=@DIR@/.venv/bin/python -m server
 # Keeps retrying forever (e.g. if the LAN IP isn't up yet at boot).
 Restart=on-failure
 RestartSec=5

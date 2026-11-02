@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from rude_awakening import alarm
-from rude_awakening.alarm import AlarmController, NestUnavailable, Ringer, connect_nest
-from rude_awakening.config import Settings
+from server import alarm
+from server.alarm import AlarmController, NestUnavailable, Ringer, connect_nest
+from server.config import Settings
 
 
 class FakeStatus:
@@ -182,7 +182,7 @@ class NeverPlays(FakeMedia):
 
 
 def test_logs_once_when_playback_starts(settings, caplog):
-    caplog.set_level("INFO", logger="rude_awakening.alarm")
+    caplog.set_level("INFO", logger="server.alarm")
     cast = FakeCast(FakeMedia())
     make_ringer(settings, cast).ring(90, 0.2, threading.Event())
     assert len(cast.media_controller.plays) >= 2

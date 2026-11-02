@@ -3,8 +3,8 @@ import threading
 import pytest
 from fastapi.testclient import TestClient
 
-from rude_awakening.app import create_app, summarize
-from rude_awakening.config import Settings
+from server.app import create_app, summarize
+from server.config import Settings
 
 TOKEN = "test-token-0123456789abcdef"
 AUTH = {"X-Webhook-Token": TOKEN}

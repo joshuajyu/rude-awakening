@@ -1,4 +1,4 @@
-"""Entry point: python -m rude_awakening"""
+"""Entry point: python -m server"""
 
 import logging
 

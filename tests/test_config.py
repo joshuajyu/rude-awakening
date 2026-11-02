@@ -1,6 +1,6 @@
 import pytest
 
-from rude_awakening.config import ROOT, Settings
+from server.config import ROOT, Settings
 
 VALID = {"WEBHOOK_TOKEN": "t" * 32, "NEST_NAME": "Bedroom speaker"}
 

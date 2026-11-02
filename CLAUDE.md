@@ -7,11 +7,11 @@ what you need to work on the repo.
 
 ## Layout
 
-- `rude_awakening/app.py`: FastAPI endpoints, token auth, payload summary
-- `rude_awakening/alarm.py`: Nest connection, the play/loop/restore logic
+- `server/app.py`: FastAPI endpoints, token auth, payload summary
+- `server/alarm.py`: Nest connection, the play/loop/restore logic
   (`Ringer`), and one-alarm-at-a-time handling (`AlarmController`)
-- `rude_awakening/media.py`: the LAN-only server that hands the sound to the Nest
-- `rude_awakening/config.py`: settings from `.env`, validated at startup
+- `server/media.py`: the LAN-only server that hands the sound to the Nest
+- `server/config.py`: settings from `.env`, validated at startup
 - `install.sh` + `systemd/rude-awakening.service.in`: deployment; must stay
   safe to rerun
 
