@@ -1,0 +1,28 @@
+# Template: install.sh fills in @USER@ and @DIR@ and installs this to
+# /etc/systemd/system/rude-awakening.service.
+[Unit]
+Description=rude-awakening (Rootly page -> Nest alarm)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@DIR@
+ExecStart=@DIR@/.venv/bin/python -m rude_awakening
+# Keeps retrying forever (e.g. if the LAN IP isn't up yet at boot).
+Restart=on-failure
+RestartSec=5
+
+# Hardening: the service only needs to read its own files and use the network.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target
