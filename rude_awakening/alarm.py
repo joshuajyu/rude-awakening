@@ -94,33 +94,45 @@ class Ringer:
         return None
 
     def _play_until_done(self, mc, deadline: float, stop: threading.Event) -> None:
+        played = False
         while not stop.is_set() and time.monotonic() < deadline:
             mc.play_media(self.settings.media_url, self.settings.media_type,
                           title="Rude Awakening", stream_type="BUFFERED")
-            if self._wait_for_track(mc, deadline, stop) == "stopped_on_device":
+            result, played_now = self._wait_for_track(mc, deadline, stop, announce=not played)
+            played = played or played_now
+            if result == "stopped_on_device":
                 log.info("Alarm stopped on the speaker itself")
                 return
-        if not stop.is_set():
-            log.info("Alarm timed out")
+        if stop.is_set():
+            return
+        if not played:
+            log.warning("Nest never started playing the alarm; check it can reach %s",
+                        self.settings.media_url)
+        log.info("Alarm timed out")
 
-    def _wait_for_track(self, mc, deadline: float, stop: threading.Event) -> str:
-        """Wait for one playthrough. Returns why it ended."""
-        started = False
+    def _wait_for_track(self, mc, deadline: float, stop: threading.Event,
+                        announce: bool = False) -> tuple[str, bool]:
+        """Wait for one playthrough. Returns why it ended and whether sound played."""
+        started = played = False
         start_by = time.monotonic() + START_TIMEOUT
         while not stop.wait(self.poll_interval) and time.monotonic() < deadline:
             status = mc.status
             if status.player_state in ("PLAYING", "BUFFERING"):
                 started = True
+                if status.player_state == "PLAYING" and not played:
+                    played = True
+                    if announce:
+                        log.info("Nest is playing the alarm")
             elif started and status.player_is_paused:
-                return "stopped_on_device"  # someone tapped the Nest
+                return "stopped_on_device", played  # someone tapped the Nest
             elif started and status.player_is_idle:
                 if status.idle_reason in ("CANCELLED", "INTERRUPTED"):
-                    return "stopped_on_device"  # "Hey Google, stop" or another cast
-                return "finished"
+                    return "stopped_on_device", played  # "Hey Google, stop" or another cast
+                return "finished", played
             elif not started and time.monotonic() > start_by:
                 log.warning("Nest did not start playback; retrying")
-                return "retry"
-        return "done"
+                return "retry", played
+        return "done", played
 
 
 class AlarmController:

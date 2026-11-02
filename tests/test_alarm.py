@@ -166,3 +166,42 @@ def test_controller_survives_ring_errors():
     assert c.start("page", 90, 600) is True
     time.sleep(0.05)
     assert not c.active
+
+
+class NeverPlays(FakeMedia):
+    """The Nest accepts the request but never plays (e.g. can't fetch the file)."""
+
+    def __init__(self, states=("IDLE",)):
+        super().__init__()
+        self.states = states
+
+    @property
+    def status(self):
+        self.polls += 1
+        return FakeStatus(self.states[min(self.polls, len(self.states)) - 1], "ERROR")
+
+
+def test_logs_once_when_playback_starts(settings, caplog):
+    caplog.set_level("INFO", logger="rude_awakening.alarm")
+    cast = FakeCast(FakeMedia())
+    make_ringer(settings, cast).ring(90, 0.2, threading.Event())
+    assert len(cast.media_controller.plays) >= 2
+    assert caplog.messages.count("Nest is playing the alarm") == 1
+    assert not any("never started" in m for m in caplog.messages)
+
+
+@pytest.mark.parametrize("states", [("IDLE",), ("BUFFERING", "IDLE")])
+def test_warns_when_playback_never_starts(settings, caplog, states):
+    # The alarm is shorter than START_TIMEOUT, like /test, and still warns.
+    cast = FakeCast(NeverPlays(states))
+    make_ringer(settings, cast).ring(90, 0.2, threading.Event())
+    assert "Nest is playing the alarm" not in caplog.messages
+    assert any("never started playing" in m and "http://10.0.0.2:8081/alarm.mp3" in m
+               for m in caplog.messages)
+
+
+def test_no_warning_when_stopped_before_playback(settings, caplog):
+    stop = threading.Event()
+    threading.Timer(0.05, stop.set).start()
+    make_ringer(settings, FakeCast(NeverPlays())).ring(90, 5, stop)
+    assert not any("never started" in m for m in caplog.messages)
