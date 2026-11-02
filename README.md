@@ -37,6 +37,20 @@ endpoints accept any request body; the service logs a short summary of it
 You can also silence the alarm on the speaker itself by saying "Hey Google,
 stop" or tapping the Nest Mini. Either way the volume is restored.
 
+## The hardware
+
+"The Wyse" throughout this README is a **Dell Wyse 5070**, a small,
+fanless thin client: an office PC built to run remote desktops, which now
+sells cheaply second-hand. It draws only a few watts, so it can stay on
+all the time, which a pager needs. This one runs **Ubuntu Server LTS** and
+sits on the home LAN at `10.0.0.2`, alongside other home services.
+
+Nothing here depends on that model. Any always-on Linux machine on the same
+network as the Nest will do, such as a Raspberry Pi or an old laptop, as
+long as it has systemd and Python 3. It needs to be on the same LAN
+because the Nest fetches the alarm sound from it directly, and Chromecast
+discovery only works locally.
+
 ## 1. Install on the Wyse
 
 The repo is private. The Wyse reads it with a **read-only deploy key**, an
